@@ -161,9 +161,9 @@
 <body>
     <div id="container">
         <div id="viewer">
-            <div id="status" style="display: none;">Please wait. Loading images from Mapillary API...</div>
+            <div id="status" style="display: none;">Loading...</div>
             <div id="progress-container">
-                <div id="progress-label">Please wait. Loading images from Mapillary API...</div>
+                <div id="progress-label">Loading images from Mapillary API...</div>
                 <div id="progress-bar">
                     <div id="progress-fill"></div>
                 </div>
@@ -171,7 +171,7 @@
             </div>
             <button id="mapillary-direct-btn">
                 <img src="https://play-lh.googleusercontent.com/z3qzEc13E2sDWky9LgqADojcdy8hrX_szuAAeX21k_dFe7GNXLIYXJtOu5RcE3_5Jz8" alt="Mapillary">
-                Open Clear Creek County on Mapillary
+                Open on Mapillary
             </button>
         </div>
         <div id="map"></div>
@@ -179,7 +179,7 @@
     
     <div id="error-container">
         <h3>⚠️ Loading Error</h3>
-        <p id="error-message">Mapillary API issue occurred during imagery fetch. Would you like to try reloading?</p>
+        <p id="error-message">Mapillary API issue occurred. Would you like to try reloading?</p>
         <div>
             <button id="reload-btn">Try Reload</button>
         </div>
@@ -187,28 +187,10 @@
 
     <script>
         const TOKEN = 'MLY|24840280672250420|6fc0e204403850a11ccc043866f1b01d';
-        const START_ID = '1347465910083369';
+        const START_ID = '2481843482007098';
         const ORGANIZATION_ID = '1286328258619804';
-        
-        // Clear Creek County, Colorado - split into smaller boxes (each ~0.008 sq degrees)
-        // Each box is 0.10 degrees wide x 0.08 degrees tall
-        const BBOXES = [
-            '-105.95,39.65,-105.85,39.73', // Northwest 1
-            '-105.85,39.65,-105.75,39.73', // Northwest 2
-            '-105.75,39.65,-105.65,39.73', // North central 1
-            '-105.65,39.65,-105.55,39.73', // North central 2
-            '-105.55,39.65,-105.45,39.73', // Northeast 1
-            '-105.45,39.65,-105.35,39.73', // Northeast 2
-            '-105.35,39.65,-105.25,39.73', // Northeast 3
-            '-105.95,39.73,-105.85,39.81', // Southwest 1
-            '-105.85,39.73,-105.75,39.81', // Southwest 2
-            '-105.75,39.73,-105.65,39.81', // South central 1
-            '-105.65,39.73,-105.55,39.81', // South central 2
-            '-105.55,39.73,-105.45,39.81', // Southeast 1
-            '-105.45,39.73,-105.35,39.81', // Southeast 2
-            '-105.35,39.73,-105.25,39.81'  // Southeast 3
-        ];
-        const AREA_NAME = 'Clear Creek County, CO';
+        const START_DATE = '2024-10-01T00:00:00Z';
+        const END_DATE = '2024-10-16T00:00:00Z';
         
         let imageData = [];
         let isUpdatingFromViewer = false;
@@ -233,13 +215,12 @@
             const percent = total > 0 ? Math.round((current / total) * 100) : 0;
             document.getElementById('progress-fill').style.width = percent + '%';
             document.getElementById('progress-text').textContent = 
-                `Request ${current} of ~${total} | ${filtered} images found`;
+                `Request ${current} of ~${total} | ${filtered} images match filter`;
         };
         
         const showError = (message) => {
             const errorContainer = document.getElementById('error-container');
-            document.getElementById('error-message').textContent = message || 
-                'Mapillary API issue occurred. Would you like to try reloading?';
+            document.getElementById('error-message').textContent = message;
             errorContainer.classList.add('visible');
             showProgress(false);
         };
@@ -294,96 +275,97 @@
                 showProgress(true);
                 
                 let allImages = [];
-                const estimatedTotal = BBOXES.length * 5;
-                let overallRequestCount = 0;
+                let after = null;
+                let requestCount = 0;
+                let totalFetched = 0;
+                const startTime = Date.parse(START_DATE);
+                const endTime = Date.parse(END_DATE);
+                const estimatedTotal = 30;
                 
-                for (let bboxIndex = 0; bboxIndex < BBOXES.length; bboxIndex++) {
-                    const currentBbox = BBOXES[bboxIndex];
-                    console.log(`\n--- Fetching bbox ${bboxIndex + 1}/${BBOXES.length}: ${currentBbox} ---`);
-                    
-                    let after = null;
-                    let requestCount = 0;
-                    let totalFetched = 0;
-                    
-                    while (true) {
-                        const url = new URL('https://graph.mapillary.com/images');
-                        url.searchParams.set('access_token', TOKEN);
-                        url.searchParams.set('fields', 'id,geometry,compass_angle,sequence,captured_at');
-                        url.searchParams.set('organization_id', ORGANIZATION_ID);
-                        url.searchParams.set('bbox', currentBbox);
-                        url.searchParams.set('limit', 2000);
-                        if (after) {
-                            url.searchParams.set('after', after);
-                        }
-                        
-                        const response = await fetch(url);
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error(`HTTP ${response.status}: ${errorText}`);
-                            showError(`API Error (${response.status}): Failed to load imagery data.`);
-                            throw new Error(`HTTP ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        const images = data.data || [];
-                        
-                        requestCount++;
-                        overallRequestCount++;
-                        totalFetched += images.length;
-                        console.log(`  Request ${requestCount}: got ${images.length} images (bbox total: ${totalFetched})`);
-                        
-                        if (images.length === 0) break;
-                        
-                        if (bboxIndex === 0 && requestCount === 1) {
-                            console.log('Sample images from first request:');
-                            images.slice(0, 5).forEach(img => {
-                                const coords = img.geometry?.coordinates || [];
-                                console.log(`  ${img.id}: [${coords[0]?.toFixed(4)}, ${coords[1]?.toFixed(4)}]`);
-                            });
-                        }
-                        
-                        allImages = allImages.concat(images);
-                        updateProgress(overallRequestCount, estimatedTotal, allImages.length);
-                        
-                        if (data.paging && data.paging.cursors && data.paging.cursors.after) {
-                            after = data.paging.cursors.after;
-                        } else {
-                            console.log(`  No more pages for bbox ${bboxIndex + 1}`);
-                            break;
-                        }
-                        
-                        if (requestCount >= 25) {
-                            console.log('  Reached maximum request limit for this bbox');
-                            break;
-                        }
-                        
-                        if (allImages.length >= 20000) {
-                            console.log('Reached maximum of 20,000 total images');
-                            allImages = allImages.slice(0, 20000);
-                            break;
-                        }
+                while (true) {
+                    const url = new URL('https://graph.mapillary.com/images');
+                    url.searchParams.set('access_token', TOKEN);
+                    url.searchParams.set('fields', 'id,geometry,compass_angle,sequence,captured_at');
+                    url.searchParams.set('organization_id', ORGANIZATION_ID);
+                    url.searchParams.set('limit', 2000);
+                    if (after) {
+                        url.searchParams.set('after', after);
                     }
                     
-                    console.log(`Bbox ${bboxIndex + 1} complete: ${totalFetched} images`);
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`HTTP ${response.status}: ${errorText}`);
+                        showError(`API Error (${response.status}): Failed to load imagery.`);
+                        throw new Error(`HTTP ${response.status}`);
+                    }
                     
-                    if (allImages.length >= 20000) break;
+                    const data = await response.json();
+                    const images = data.data || [];
+                    
+                    requestCount++;
+                    totalFetched += images.length;
+                    console.log(`Request ${requestCount}: got ${images.length} images (total: ${totalFetched})`);
+                    
+                    if (images.length === 0) break;
+                    
+                    if (requestCount === 1) {
+                        console.log('Sample dates from first request:');
+                        images.slice(0, 5).forEach(img => {
+                            console.log(`  ${img.id}: ${img.captured_at}`);
+                        });
+                        console.log(`Looking for dates between ${START_DATE} and ${END_DATE}`);
+                    }
+                    
+                    const filtered = images.filter(img => {
+                        if (!img.captured_at) return false;
+                        let capturedTime;
+                        if (typeof img.captured_at === 'number') {
+                            capturedTime = img.captured_at;
+                        } else {
+                            capturedTime = Date.parse(img.captured_at);
+                        }
+                        return capturedTime >= startTime && capturedTime < endTime;
+                    });
+                    
+                    console.log(`  Filtered to ${filtered.length} images in date range`);
+                    
+                    allImages = allImages.concat(filtered);
+                    updateProgress(requestCount, estimatedTotal, allImages.length);
+                    
+                    if (data.paging && data.paging.cursors && data.paging.cursors.after) {
+                        after = data.paging.cursors.after;
+                    } else {
+                        console.log('No more pages');
+                        break;
+                    }
+                    
+                    if (requestCount >= 50) {
+                        console.log('Reached maximum requests');
+                        break;
+                    }
+                    
+                    if (allImages.length >= 20000) {
+                        allImages = allImages.slice(0, 20000);
+                        break;
+                    }
                 }
                 
                 showProgress(false);
                 console.log(`\n=== FINAL RESULTS ===`);
-                console.log(`Total bounding boxes queried: ${BBOXES.length}`);
-                console.log(`Total API requests: ${overallRequestCount}`);
-                console.log(`Total images in ${AREA_NAME}: ${allImages.length}`);
+                console.log(`Total requests: ${requestCount}`);
+                console.log(`Total fetched: ${totalFetched}`);
+                console.log(`Images matching filter (Oct 1-15, 2024): ${allImages.length}`);
                 console.log(`===================\n`);
                 
                 imageData = allImages;
                 
                 if (imageData.length === 0) {
-                    status(`No images found in ${AREA_NAME}`);
+                    status('No images found for date range');
                     return;
                 }
                 
-                status(`Loaded ${imageData.length} images in ${AREA_NAME}`);
+                status(`Loaded ${imageData.length} images (Oct 1-15, 2024)`);
                 addImagesToMap();
                 
                 if (imageData.length > 0) {
@@ -400,9 +382,9 @@
                     }
                 }
             } catch (err) {
-                status('Error loading images: ' + err.message);
-                console.error('Error fetching images:', err);
-                showError(`Error loading imagery: ${err.message}. Would you like to try reloading?`);
+                status('Error: ' + err.message);
+                console.error('Error:', err);
+                showError(`Error loading imagery: ${err.message}`);
             }
         }
 
@@ -417,10 +399,7 @@
                 
                 features.push({
                     type: 'Feature',
-                    geometry: {
-                        type: 'Point',
-                        coordinates: coords
-                    },
+                    geometry: { type: 'Point', coordinates: coords },
                     properties: {
                         id: img.id,
                         compass_angle: img.compass_angle || 0,
@@ -453,13 +432,11 @@
                         type: 'LineString',
                         coordinates: points.map(p => p.coords)
                     },
-                    properties: {
-                        sequence: seqId
-                    }
+                    properties: { sequence: seqId }
                 });
             }
 
-            console.log(`Adding ${features.length} points and ${lineFeatures.length} lines to map`);
+            console.log(`Adding ${features.length} points and ${lineFeatures.length} lines`);
 
             if (map.getSource('images')) {
                 map.getSource('images').setData({
@@ -544,10 +521,7 @@
                         type: 'FeatureCollection',
                         features: [{
                             type: 'Feature',
-                            geometry: {
-                                type: 'Point',
-                                coordinates: [pos.lng, pos.lat]
-                            }
+                            geometry: { type: 'Point', coordinates: [pos.lng, pos.lat] }
                         }]
                     });
                 }
@@ -558,7 +532,7 @@
                 
                 setTimeout(() => { isUpdatingFromViewer = false; }, 200);
             } catch (err) {
-                console.error('Error syncing position:', err);
+                console.error('Error syncing:', err);
                 isUpdatingFromViewer = false;
             }
         }
@@ -573,9 +547,7 @@
                 if (path) {
                     path.setAttribute('d', makeArcPath(hFovDeg));
                 }
-            } catch (err) {
-                console.error('Error updating FOV:', err);
-            }
+            } catch (err) {}
         });
 
         viewer.on('load', syncPosition);
@@ -652,13 +624,7 @@
                     if (map.getSource('currentImage')) {
                         map.getSource('currentImage').setData({
                             type: 'FeatureCollection',
-                            features: [{
-                                type: 'Feature',
-                                geometry: {
-                                    type: 'Point',
-                                    coordinates: coords
-                                }
-                            }]
+                            features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: coords } }]
                         });
                     }
                     
@@ -670,7 +636,7 @@
                         await viewer.moveTo(String(imageId));
                         setTimeout(syncPosition, 100);
                     } catch (err) {
-                        console.error('Error moving to image:', err);
+                        console.error('Error:', err);
                     }
                     setTimeout(() => { isUpdatingFromMap = false; }, 300);
                 }
