@@ -190,11 +190,23 @@
         const START_ID = '1347465910083369';
         const ORGANIZATION_ID = '1286328258619804';
         
-        // Clear Creek County, Colorado - split into multiple boxes to stay under API limit
+        // Clear Creek County, Colorado - split into smaller boxes (each ~0.008 sq degrees)
+        // Each box is 0.10 degrees wide x 0.08 degrees tall
         const BBOXES = [
-            '-105.95,39.65,-105.70,39.85', // Western section
-            '-105.70,39.65,-105.45,39.85', // Central section
-            '-105.45,39.65,-105.20,39.85'  // Eastern section
+            '-105.95,39.65,-105.85,39.73', // Northwest 1
+            '-105.85,39.65,-105.75,39.73', // Northwest 2
+            '-105.75,39.65,-105.65,39.73', // North central 1
+            '-105.65,39.65,-105.55,39.73', // North central 2
+            '-105.55,39.65,-105.45,39.73', // Northeast 1
+            '-105.45,39.65,-105.35,39.73', // Northeast 2
+            '-105.35,39.65,-105.25,39.73', // Northeast 3
+            '-105.95,39.73,-105.85,39.81', // Southwest 1
+            '-105.85,39.73,-105.75,39.81', // Southwest 2
+            '-105.75,39.73,-105.65,39.81', // South central 1
+            '-105.65,39.73,-105.55,39.81', // South central 2
+            '-105.55,39.73,-105.45,39.81', // Southeast 1
+            '-105.45,39.73,-105.35,39.81', // Southeast 2
+            '-105.35,39.73,-105.25,39.81'  // Southeast 3
         ];
         const AREA_NAME = 'Clear Creek County, CO';
         
