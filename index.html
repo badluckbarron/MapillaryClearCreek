@@ -189,9 +189,11 @@
         const TOKEN = 'MLY|24840280672250420|6fc0e204403850a11ccc043866f1b01d';
         const START_ID = '1347465910083369';
         const USERNAME = 'vukmercd23';
-        const START_DATE = '2024-10-01T00:00:00Z';
-        const END_DATE = '2024-10-16T00:00:00Z';
-        const USE_DATE_FILTER = true; // Set to false to load all images and see what dates exist
+        
+        // Colorado bounding box (approximate state boundaries)
+        // Format: west, south, east, north
+        const BBOX = '-109.060253,36.992426,-102.041524,41.003444';
+        const BBOX_NAME = 'Colorado';
         
         let imageData = [];
         let isUpdatingFromViewer = false;
@@ -216,7 +218,7 @@
             const percent = total > 0 ? Math.round((current / total) * 100) : 0;
             document.getElementById('progress-fill').style.width = percent + '%';
             document.getElementById('progress-text').textContent = 
-                `Request ${current} of ~${total} | ${filtered} images match Timmons Group Petersburg filtering criteria`;
+                `Request ${current} of ~${total} | ${filtered} images in ${BBOX_NAME}`;
         };
         
         const showError = (message) => {
@@ -285,8 +287,6 @@
                 let after = null;
                 let requestCount = 0;
                 let totalFetched = 0;
-                const startTime = Date.parse(START_DATE);
-                const endTime = Date.parse(END_DATE);
                 const estimatedTotal = 30;
                 
                 // Fetch all pages
@@ -295,6 +295,7 @@
                     url.searchParams.set('access_token', TOKEN);
                     url.searchParams.set('fields', 'id,geometry,compass_angle,sequence,captured_at');
                     url.searchParams.set('creator_username', USERNAME);
+                    url.searchParams.set('bbox', BBOX);
                     url.searchParams.set('limit', 2000);
                     if (after) {
                         url.searchParams.set('after', after);
@@ -317,57 +318,17 @@
                     
                     if (images.length === 0) break;
                     
-                    // Debug: log first few dates
+                    // Debug: log first few locations
                     if (requestCount === 1) {
-                        console.log('Sample dates from first request:');
+                        console.log('Sample images from first request:');
                         images.slice(0, 5).forEach(img => {
-                            console.log(`  ${img.id}: ${img.captured_at} (type: ${typeof img.captured_at})`);
+                            const coords = img.geometry?.coordinates || [];
+                            console.log(`  ${img.id}: [${coords[0]?.toFixed(4)}, ${coords[1]?.toFixed(4)}] - ${img.captured_at}`);
                         });
-                        console.log(`Looking for dates between ${START_DATE} and ${END_DATE}`);
-                        console.log(`Start timestamp: ${startTime}, End timestamp: ${endTime}`);
+                        console.log(`Looking for images in ${BBOX_NAME} bbox: ${BBOX}`);
                     }
                     
-                    // Filter by date in JavaScript
-                    const filtered = USE_DATE_FILTER ? images.filter(img => {
-                        if (!img.captured_at) return false;
-                        let capturedTime;
-                        if (typeof img.captured_at === 'number') {
-                            capturedTime = img.captured_at;
-                        } else {
-                            capturedTime = Date.parse(img.captured_at);
-                        }
-                        return capturedTime >= startTime && capturedTime < endTime;
-                    }) : images;
-                    
-                    console.log(`  Filtered to ${filtered.length} images ${USE_DATE_FILTER ? 'in date range' : '(no date filter)'}`);
-                    
-                    // Show date range of images we're getting
-                    if (requestCount === 1 && images.length > 0) {
-                        const dates = images.map(img => {
-                            const t = typeof img.captured_at === 'number' ? img.captured_at : Date.parse(img.captured_at);
-                            return new Date(t);
-                        }).sort((a, b) => a - b);
-                        console.log(`Date range in data: ${dates[0].toISOString()} to ${dates[dates.length-1].toISOString()}`);
-                    }
-                    
-                    // Debug: show why images are being filtered out
-                    if (filtered.length === 0 && images.length > 0 && requestCount === 1) {
-                        console.log('First image dates analysis:');
-                        images.slice(0, 3).forEach(img => {
-                            let capturedTime;
-                            if (typeof img.captured_at === 'number') {
-                                capturedTime = img.captured_at;
-                            } else {
-                                capturedTime = Date.parse(img.captured_at);
-                            }
-                            const date = new Date(capturedTime);
-                            const inRange = capturedTime >= startTime && capturedTime < endTime;
-                            console.log(`  ${img.captured_at} -> ${date.toISOString()} -> ${inRange ? 'IN' : 'OUT'}`);
-                            console.log(`    Captured: ${capturedTime}, Start: ${startTime}, End: ${endTime}`);
-                        });
-                    }
-                    
-                    allImages = allImages.concat(filtered);
+                    allImages = allImages.concat(images);
                     updateProgress(requestCount, estimatedTotal, allImages.length);
                     
                     // Check if there's more data
@@ -396,22 +357,18 @@
                 console.log(`\n=== FINAL RESULTS ===`);
                 console.log(`Total API requests: ${requestCount}`);
                 console.log(`Total images fetched from API: ${totalFetched}`);
-                console.log(`Total images matching filter: ${allImages.length}`);
-                if (USE_DATE_FILTER) {
-                    console.log(`Date filter applied: Oct 1-15, 2024`);
-                } else {
-                    console.log(`No date filter applied - showing all images`);
-                }
+                console.log(`Total images in ${BBOX_NAME}: ${allImages.length}`);
+                console.log(`Bounding box: ${BBOX}`);
                 console.log(`===================\n`);
                 
                 imageData = allImages;
                 
                 if (imageData.length === 0) {
-                    status('No Timmons Group images found using filtering criteria');
+                    status(`No Timmons Group images found in ${BBOX_NAME}`);
                     return;
                 }
                 
-                status(`Loaded ${imageData.length} Timmons Group images for Petersburg, VA (Oct 2025)`);
+                status(`Loaded ${imageData.length} Timmons Group images in ${BBOX_NAME}`);
                 addImagesToMap();
                 
                 // Fit map to show all points
