@@ -190,10 +190,14 @@
         const START_ID = '1347465910083369';
         const ORGANIZATION_ID = '1286328258619804';
         
-        // Colorado bounding box (approximate state boundaries)
-        // Format: west, south, east, north
-        const BBOX = '-109.060253,36.992426,-102.041524,41.003444';
-        const BBOX_NAME = 'Colorado';
+        // Clear Creek County, Colorado - split into multiple boxes to stay under API limit
+        // Each box is approximately 0.008-0.009 square degrees
+        const BBOXES = [
+            '-105.95,39.65,-105.70,39.85', // Western section
+            '-105.70,39.65,-105.45,39.85', // Central section
+            '-105.45,39.65,-105.20,39.85'  // Eastern section
+        ];
+        const BBOX_NAME = 'Clear Creek County, CO';
         
         let imageData = [];
         let isUpdatingFromViewer = false;
@@ -355,10 +359,9 @@
                 
                 showProgress(false);
                 console.log(`\n=== FINAL RESULTS ===`);
-                console.log(`Total API requests: ${requestCount}`);
-                console.log(`Total images fetched from API: ${totalFetched}`);
+                console.log(`Total bounding boxes queried: ${BBOXES.length}`);
+                console.log(`Total API requests: ${overallRequestCount}`);
                 console.log(`Total images in ${BBOX_NAME}: ${allImages.length}`);
-                console.log(`Bounding box: ${BBOX}`);
                 console.log(`===================\n`);
                 
                 imageData = allImages;
