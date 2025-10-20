@@ -222,7 +222,7 @@
             const percent = total > 0 ? Math.round((current / total) * 100) : 0;
             document.getElementById('progress-fill').style.width = percent + '%';
             document.getElementById('progress-text').textContent = 
-                `Request ${current} of ~${total} | ${filtered} images in ${BBOX_NAME}`;
+                `Request ${current} of ~${total} | ${filtered} images found`;
         };
         
         const showError = (message) => {
