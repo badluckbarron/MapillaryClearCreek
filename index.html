@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapillary Viewer with Map</title>
+    <title>Petersburg Mapillary Viewer with Map</title>
     
     <!-- MapillaryJS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.css" />
@@ -168,9 +168,9 @@
 <body>
     <div id="container">
         <div id="viewer">
-            <div id="status" style="display: none;">Please wait. Loading images from Mapillary API...</div>
+            <div id="status" style="display: none;">Please wait. Loading Petersburg images from Mapillary API...</div>
             <div id="progress-container">
-                <div id="progress-label">Please wait. Loading images from Mapillary API...</div>
+                <div id="progress-label">Please wait. Loading Petersburg images from Mapillary API...</div>
                 <div id="progress-bar">
                     <div id="progress-fill"></div>
                 </div>
@@ -178,7 +178,7 @@
             </div>
             <button id="mapillary-direct-btn">
                 <img src="https://play-lh.googleusercontent.com/z3qzEc13E2sDWky9LgqADojcdy8hrX_szuAAeX21k_dFe7GNXLIYXJtOu5RcE3_5Jz8" alt="Mapillary">
-                Open Timmons Broussard Mapillary Data Directly
+                Open Timmons Petersburg Mapillary Data Directly
             </button>
         </div>
         <div id="map"></div>
@@ -197,7 +197,7 @@
         const TOKEN = 'MLY|24840280672250420|6fc0e204403850a11ccc043866f1b01d';
         const START_ID = '1347465910083369';
         const ORGANIZATION_ID = '1286328258619804';
-        const START_DATE = '2025-10-01T00:00:00Z';
+        const START_DATE = '2025-01-01T00:00:00Z';
         const END_DATE = '2025-10-16T00:00:00Z'; // Exclusive, so 10/15 23:59:59 is included
         
         let imageData = [];
