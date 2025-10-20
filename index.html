@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapillary Viewer with Map</title>
+    <title>Patersburg Mapillary Imagery Viewer with Map</title>
     
     <!-- MapillaryJS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.css" />
@@ -178,7 +178,7 @@
             </div>
             <button id="mapillary-direct-btn">
                 <img src="https://play-lh.googleusercontent.com/z3qzEc13E2sDWky9LgqADojcdy8hrX_szuAAeX21k_dFe7GNXLIYXJtOu5RcE3_5Jz8" alt="Mapillary">
-                Open Timmons Broussard Mapillary Data Directly
+                Open Timmons Petersburg Mapillary Data Directly
             </button>
         </div>
         <div id="map"></div>
@@ -187,7 +187,7 @@
     <div id="error-container">
         <h3>⚠️ Loading Error</h3>
         <p id="error-message">Mapillary API issue occurred during imagery fetch. Would you like to try reloading?</p>
-        <p id="error-message"><i>You can also open filtered Mapillary data by using th button in the bottom left of the screen.<i></i></p>
+        <p id="error-message"></p>
         <div>
             <button id="reload-btn">Try Reload</button>
         </div>
@@ -224,7 +224,7 @@
             const percent = total > 0 ? Math.round((current / total) * 100) : 0;
             document.getElementById('progress-fill').style.width = percent + '%';
             document.getElementById('progress-text').textContent = 
-                `Request ${current} of ~${total} | ${filtered} images match Timmons Group Broussard filtering criteria`;
+                `Request ${current} of ~${total} | ${filtered} images match Timmons Group Petersburg filtering criteria`;
         };
         
         const showError = (message) => {
@@ -409,7 +409,7 @@
                     return;
                 }
                 
-                status(`Loaded ${imageData.length} Timmons Group images for Broussard, LA (Oct 2025)`);
+                status(`Loaded ${imageData.length} Timmons Group images for Petersburg, LA (Oct 2025)`);
                 addImagesToMap();
                 
                 // Fit map to show all points
