@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patersburg Mapillary Imagery Viewer with Map</title>
+    <title>Petersburg Mapillary Imagery Viewer with Map</title>
     
     <!-- MapillaryJS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.css" />
@@ -130,13 +130,6 @@
         #reload-btn:hover {
             background: #3367D6;
         }
-        #mapillary-btn {
-            background: #34A853;
-            color: white;
-        }
-        #mapillary-btn:hover {
-            background: #2D9348;
-        }
         #mapillary-direct-btn {
             position: absolute;
             bottom: 10px;
@@ -187,7 +180,6 @@
     <div id="error-container">
         <h3>⚠️ Loading Error</h3>
         <p id="error-message">Mapillary API issue occurred during imagery fetch. Would you like to try reloading?</p>
-        <p id="error-message"></p>
         <div>
             <button id="reload-btn">Try Reload</button>
         </div>
@@ -197,9 +189,9 @@
         const TOKEN = 'MLY|24840280672250420|6fc0e204403850a11ccc043866f1b01d';
         const START_ID = '1347465910083369';
         const USERNAME = 'vukmercd23';
-        const ORGANIZATION_ID = '1286328258619804';
         const START_DATE = '2024-10-01T00:00:00Z';
-        const END_DATE = '2024-10-16T00:00:00Z'; // Exclusive, so 10/15 23:59:59 is included
+        const END_DATE = '2024-10-16T00:00:00Z';
+        const USE_DATE_FILTER = true; // Set to false to load all images and see what dates exist
         
         let imageData = [];
         let isUpdatingFromViewer = false;
@@ -284,7 +276,7 @@
             zoom: 2
         });
 
-        // Fetch ALL organization images with date filter
+        // Fetch ALL user images with date filter
         async function fetchAllUserImages() {
             try {
                 showProgress(true);
@@ -295,16 +287,13 @@
                 let totalFetched = 0;
                 const startTime = Date.parse(START_DATE);
                 const endTime = Date.parse(END_DATE);
-                const estimatedTotal = 30; // Rough estimate for progress bar
+                const estimatedTotal = 30;
                 
                 // Fetch all pages
                 while (true) {
                     const url = new URL('https://graph.mapillary.com/images');
                     url.searchParams.set('access_token', TOKEN);
                     url.searchParams.set('fields', 'id,geometry,compass_angle,sequence,captured_at');
-                    // Try organization_id filter - comment out if it doesn't work
-                    // url.searchParams.set('organization_id', ORGANIZATION_ID);
-                    // Use username filter instead
                     url.searchParams.set('creator_username', USERNAME);
                     url.searchParams.set('limit', 2000);
                     if (after) {
@@ -315,7 +304,7 @@
                     if (!response.ok) {
                         const errorText = await response.text();
                         console.error(`HTTP ${response.status}: ${errorText}`);
-                        showError(`API Error (${response.status}): Failed to load imagery data. Would you like to try reloading?`);
+                        showError(`API Error (${response.status}): Failed to load imagery data.`);
                         throw new Error(`HTTP ${response.status}`);
                     }
                     
@@ -339,9 +328,8 @@
                     }
                     
                     // Filter by date in JavaScript
-                    const filtered = images.filter(img => {
+                    const filtered = USE_DATE_FILTER ? images.filter(img => {
                         if (!img.captured_at) return false;
-                        // captured_at might be a Unix timestamp (number) or ISO string
                         let capturedTime;
                         if (typeof img.captured_at === 'number') {
                             capturedTime = img.captured_at;
@@ -349,9 +337,18 @@
                             capturedTime = Date.parse(img.captured_at);
                         }
                         return capturedTime >= startTime && capturedTime < endTime;
-                    });
+                    }) : images;
                     
-                    console.log(`  Filtered to ${filtered.length} images in date range`);
+                    console.log(`  Filtered to ${filtered.length} images ${USE_DATE_FILTER ? 'in date range' : '(no date filter)'}`);
+                    
+                    // Show date range of images we're getting
+                    if (requestCount === 1 && images.length > 0) {
+                        const dates = images.map(img => {
+                            const t = typeof img.captured_at === 'number' ? img.captured_at : Date.parse(img.captured_at);
+                            return new Date(t);
+                        }).sort((a, b) => a - b);
+                        console.log(`Date range in data: ${dates[0].toISOString()} to ${dates[dates.length-1].toISOString()}`);
+                    }
                     
                     // Debug: show why images are being filtered out
                     if (filtered.length === 0 && images.length > 0 && requestCount === 1) {
@@ -381,16 +378,16 @@
                         break;
                     }
                     
-                    // Safety limit to prevent infinite loops
+                    // Safety limit
                     if (requestCount >= 50) {
                         console.log('Reached maximum request limit');
                         break;
                     }
                     
                     // Stop if we've collected enough images
-                    if (allImages.length >= 59477) {
-                        console.log('Reached maximum of 59,477 images');
-                        allImages = allImages.slice(0, 59477);
+                    if (allImages.length >= 20000) {
+                        console.log('Reached maximum of 20,000 images');
+                        allImages = allImages.slice(0, 20000);
                         break;
                     }
                 }
@@ -399,7 +396,12 @@
                 console.log(`\n=== FINAL RESULTS ===`);
                 console.log(`Total API requests: ${requestCount}`);
                 console.log(`Total images fetched from API: ${totalFetched}`);
-                console.log(`Total images matching date filter (Oct 1-15, 2025): ${allImages.length}`);
+                console.log(`Total images matching filter: ${allImages.length}`);
+                if (USE_DATE_FILTER) {
+                    console.log(`Date filter applied: Oct 1-15, 2024`);
+                } else {
+                    console.log(`No date filter applied - showing all images`);
+                }
                 console.log(`===================\n`);
                 
                 imageData = allImages;
@@ -409,7 +411,7 @@
                     return;
                 }
                 
-                status(`Loaded ${imageData.length} Timmons Group images for Petersburg, LA (Oct 2025)`);
+                status(`Loaded ${imageData.length} Timmons Group images for Petersburg, VA (Oct 2025)`);
                 addImagesToMap();
                 
                 // Fit map to show all points
@@ -429,7 +431,7 @@
             } catch (err) {
                 status('Error loading images: ' + err.message);
                 console.error('Error fetching images:', err);
-                showError(`Error loading imagery: ${err.message}. Would you like to try reloading? You can also load Mapillary directly, using the button at the bottom left of the screen.`);
+                showError(`Error loading imagery: ${err.message}. Would you like to try reloading?`);
             }
         }
 
@@ -438,13 +440,11 @@
             const features = [];
             const sequenceGroups = {};
             
-            // Single pass through data to build both features and sequence groups
             for (const img of imageData) {
                 if (!img.geometry || !img.geometry.coordinates) continue;
                 
                 const coords = img.geometry.coordinates;
                 
-                // Add point feature
                 features.push({
                     type: 'Feature',
                     geometry: {
@@ -458,7 +458,6 @@
                     }
                 });
                 
-                // Group for sequences
                 if (img.sequence) {
                     if (!sequenceGroups[img.sequence]) {
                         sequenceGroups[img.sequence] = [];
@@ -470,7 +469,6 @@
                 }
             }
 
-            // Create line features from sequences
             const lineFeatures = [];
             for (const [seqId, points] of Object.entries(sequenceGroups)) {
                 if (points.length < 2) continue;
@@ -493,7 +491,6 @@
 
             console.log(`Adding ${features.length} points and ${lineFeatures.length} lines to map`);
 
-            // Update the sources
             if (map.getSource('images')) {
                 map.getSource('images').setData({
                     type: 'FeatureCollection',
@@ -557,7 +554,6 @@
             rotationAlignment: 'map'
         });
 
-        // Sync viewer position to map
         async function syncPosition() {
             if (isUpdatingFromMap) return;
             
@@ -566,17 +562,14 @@
                 const pos = await viewer.getPosition();
                 const pov = await viewer.getPointOfView();
                 
-                // Update position markers
                 positionMarker.setLngLat([pos.lng, pos.lat]).addTo(map);
                 cameraMarker.setLngLat([pos.lng, pos.lat]).addTo(map);
                 
-                // Update FOV rotation
                 const svg = cameraEl.querySelector('svg');
                 if (svg) {
                     svg.style.transform = `rotateZ(${pov.bearing}deg)`;
                 }
                 
-                // Update highlighted point
                 if (map.getSource('currentImage')) {
                     map.getSource('currentImage').setData({
                         type: 'FeatureCollection',
@@ -590,7 +583,6 @@
                     });
                 }
                 
-                // Only pan if we're not already updating from a map click
                 if (!isUpdatingFromMap) {
                     map.panTo([pos.lng, pos.lat]);
                 }
@@ -602,7 +594,6 @@
             }
         }
 
-        // Update FOV when it changes
         viewer.on('fov', async () => {
             try {
                 const vc = viewer.getContainer();
@@ -618,7 +609,6 @@
             }
         });
 
-        // Set up viewer event listeners
         viewer.on('load', syncPosition);
         viewer.on('image', syncPosition);
         viewer.on('position', syncPosition);
@@ -628,9 +618,7 @@
             if (viewer.emit) viewer.emit('fov');
         });
 
-        // Initialize when map loads
         map.on('load', () => {
-            // Create empty sources first
             map.addSource('sequences', {
                 type: 'geojson',
                 data: { type: 'FeatureCollection', features: [] }
@@ -682,7 +670,6 @@
                 }
             });
 
-            // Click handler
             map.on('click', 'image-points', async (e) => {
                 if (isUpdatingFromViewer) return;
                 
@@ -693,7 +680,6 @@
                 if (imageId) {
                     isUpdatingFromMap = true;
                     
-                    // Update highlighted point immediately
                     if (map.getSource('currentImage')) {
                         map.getSource('currentImage').setData({
                             type: 'FeatureCollection',
@@ -707,16 +693,12 @@
                         });
                     }
                     
-                    // Update position markers immediately
                     positionMarker.setLngLat(coords).addTo(map);
                     cameraMarker.setLngLat(coords).addTo(map);
-                    
-                    // Center map on selected point
                     map.panTo(coords);
                     
                     try {
                         await viewer.moveTo(String(imageId));
-                        // Force a position sync after the image loads
                         setTimeout(syncPosition, 100);
                     } catch (err) {
                         console.error('Error moving to image:', err);
@@ -733,7 +715,6 @@
                 map.getCanvas().style.cursor = '';
             });
 
-            // Load all images once at startup
             fetchAllUserImages();
         });
     </script>
